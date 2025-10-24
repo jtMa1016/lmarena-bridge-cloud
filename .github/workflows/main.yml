@@ -1,14 +1,12 @@
 name: Build and Push Docker Image to GHCR
 
 on:
-  # 当有代码推送到 main 分支时，自动触发此流程
   push:
     branches: [ "main" ]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    # 授予写入 GitHub Packages 的权限
     permissions:
       contents: read
       packages: write
@@ -21,14 +19,18 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          # GITHUB_TOKEN 是由 GitHub Actions 自动提供的密钥
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      
+      # <--- 新增的步骤：将用户名转为小写
+      - name: Convert owner to lowercase
+        id: string
+        run: echo "owner_lowercase=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          # 这是您镜像的标签，格式为 ghcr.io/你的用户名/你的仓库名:latest
-          tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+          # <--- 修改的这行：使用转换后的小写用户名
+          tags: ghcr.io/${{ steps.string.outputs.owner_lowercase }}/${{ github.event.repository.name }}:latest
